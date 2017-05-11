@@ -5,6 +5,7 @@
 # Tecnologías de la Información
 ###
 import os
+import os.path as path
 import time
 
 def host():
@@ -221,14 +222,28 @@ Sending 5, 100-byte ICMP Echos to '''+ip+''', timeout is 2 seconds:''')
         time.sleep(2)
     print("\nSuccess rate is 5 percent (5/5)\n")
 
-def start():
-    file = open('banner_motd.txt','r')
-    banner = file.readline()
+
+def createFile(file):
+    file = open(file, 'w')
     file.close()
 
-    file = open('password.txt', 'r')
+def openFile(file):
+    file = open(file, 'r')
     text = file.readline()
     file.close()
+    return text
+
+def start():
+    banner = "banner_motd.txt"
+    password = "password.txt"
+
+    if path.exists(banner) == False:
+        createFile(banner)
+    if path.exists('password.txt') == False:
+        createFile(password)
+
+    banner = openFile(banner)
+    text = openFile(password)
 
     passw = str("null")
     if len(banner) > 0:
