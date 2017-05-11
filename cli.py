@@ -1,7 +1,11 @@
+###
+# Alberto Caro Navarro
+# alberto.cnavarro@alumnos.udg.mx
+# 215818158
+# Tecnologías de la Información
+###
 import os
-
 import time
-
 
 def host():
     file = open('hostname.txt','r')
@@ -27,7 +31,6 @@ def passExec(passw):
     file = open('password.txt','w')
     file.write(passw+" 0")
     file.close()
-
 
 def login():
     file = open('password.txt','r')
