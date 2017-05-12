@@ -8,19 +8,45 @@ import os
 import os.path as path
 import time
 
-def host():
-    file = open('hostname.txt','r')
-    hostname = file.readline()
+hostnameFile = 'hostname.txt'
+execFile = 'exec.txt'
+bannerMotdFile = 'banner_motd.txt'
+passwordFile = 'password.txt'
+
+
+def create_file(file):
+    file = open(file, 'w')
     file.close()
-    if len(hostname) < 1:
+
+
+def modify_file(file, value):
+    if not path.exists(file):
+        create_file(file)
+    file = open(file, 'w')
+    file.write(value)
+    file.close()
+
+
+def open_file(file):
+    file = open(file, 'r')
+    text = file.readline()
+    file.close()
+    return text
+
+
+def host():
+    if path.exists(hostnameFile):
+        hostname = open_file(hostnameFile)
+    else:
         hostname = "Switch"
     return hostname
 
-def Interface():
+
+def interf():
     hostname = host()
     flag = True
     while flag:
-        comm = input(hostname+"(config-if)# ")
+        comm = input(hostname + "(config-if)# ")
         if comm == "":
             print()
         elif comm == "exit":
@@ -28,90 +54,57 @@ def Interface():
         else:
             print("Comando no reconocido.")
 
-def passExec(passw):
-    file = open('password.txt','w')
-    file.write(passw+" 0")
-    file.close()
 
-def login():
-    file = open('password.txt','r')
-    passw = file.readline()
-    file.close()
-    file = open('password.txt', 'w')
-    file.write(passw[0:len(passw) - 2]+" 1")
-    file.close()
-
-def Line():
+def line():
     hostname = host()
     flag = True
     while flag:
-        comm = input(hostname+"(config-line)# ")
+        comm = input(hostname + "(config-line)# ")
         comm = comm.split(" ")
         if comm[0] == "password":
-            passExec(comm[1])
+            modify_file(passwordFile,comm[1]+" 0")
         elif comm[0] == "login":
-            login()
+            passw = open_file(passwordFile)
+            modify_file(passwordFile,passw[0:len(passw)-2]+" 1")
         elif comm[0] == "exit":
             flag = False
         else:
             print("Comando no reconocido.")
 
-def confPassword(passw):
-    file = open('exec.txt','w')
-    file.write(passw)
-    file.close()
 
-def confSecret(secret):
-    file = open('exec.txt', 'w')
-    file.write(secret)
-    file.close()
-
-def changeHostname(name):
-    file = open('hostname.txt', 'w')
-    file.write(name)
-    file.close()
-
-def banner_motd(comm):
-    pos1 = comm.find("#")+1
-    pos2 = len(comm)-1
-    banner = comm[pos1:pos2]
-    file = open('banner_motd.txt','w')
-    file.write(banner)
-    file.close()
-
-def Conf():
+def conf():
     flag = True
     while flag:
         hostname = host()
-        comm = input(hostname+"(config)# ")
+        comm = input(hostname + "(config)# ")
         comm = comm.split(" ")
         if comm[0] == "line":
-            if len(comm) > 1 and len(comm) < 5:
-                Line()
+            if 1 < len(comm) < 5:
+                line()
             elif len(comm) > 4:
                 print("Invalid input detected")
             else:
                 print("% Incomplete command")
         elif comm[0] == "interface":
-            if len(comm) > 1 and len(comm) < 3:
-                Interface()
+            if 1 < len(comm) < 3:
+                interf()
             elif len(comm) > 2:
                 print("Invalid input detected")
             else:
                 print("% Incomplete command")
         elif comm[0] == "enable":
-            if len(comm) > 2 and len(comm) < 4:
+            if 2 < len(comm) < 4:
                 if comm[1] == "password":
-                    confPassword(comm[2])
+                    modify_file(execFile, comm[2])
                 elif comm[1] == "secret":
-                    confSecret(comm[2])
+                    modify_file(execFile, comm[2])
             elif len(comm) > 3:
                 print("Invalid input detected")
             else:
                 print("% Incomplete command")
         elif comm[0] == "hostname":
-            if len(comm) > 1 and len(comm) < 3:
-                changeHostname(comm[1])
+            if 1 < len(comm) < 3:
+                modify_file(hostnameFile,comm[1])
             elif len(comm) > 2:
                 input("Invalid input detected")
             else:
@@ -119,7 +112,10 @@ def Conf():
         elif comm[0] == "banner":
             if len(comm) > 1:
                 comm = " ".join(comm)
-                banner_motd(comm)
+                pos1 = comm.find("#") + 1
+                pos2 = len(comm) - 1
+                banner = comm[pos1:pos2]
+                modify_file(bannerMotdFile, banner)
             else:
                 print("% Incomplete command")
         elif comm[0] == "?":
@@ -162,20 +158,28 @@ def Conf():
         else:
             print("Comando no reconocido.")
 
-def Exec():
-    file = open('exec.txt', 'r')
-    password = file.readline()
-    file.close()
-    passw = str("null")
-    if len(password) > 0:
+
+def ping(ip):
+    print('''\nType escape sequence to abort.
+Sending 5, 100-byte ICMP Echos to ''' + ip + ''', timeout is 2 seconds:''')
+    for x in range(0, 5):
+        print(".")
+        time.sleep(2)
+    print("\nSuccess rate is 5 percent (5/5)\n")
+
+
+def exec_privileged():
+    if path.exists(execFile):
+        password = open_file(execFile)
+        passw = str("null")
         while passw != password:
             passw = input("Password: ")
     flag = True
     while flag:
         hostname = host()
-        comm = input(hostname+"# ")
+        comm = input(hostname + "# ")
         if comm == "conf term" or comm == "config terminal" or comm == "config term" or comm == "configure terminal":
-            Conf()
+            conf()
         elif comm == "?":
             if len(comm) == 1:
                 print('''Exec commands:
@@ -214,59 +218,30 @@ def Exec():
         else:
             print("Comando no reconocido.")
 
-def ping(ip):
-    print('''\nType escape sequence to abort.
-Sending 5, 100-byte ICMP Echos to '''+ip+''', timeout is 2 seconds:''')
-    for x in range(0,5):
-        print(".")
-        time.sleep(2)
-    print("\nSuccess rate is 5 percent (5/5)\n")
 
-
-def createFile(file):
-    file = open(file, 'w')
-    file.close()
-
-def openFile(file):
-    file = open(file, 'r')
-    text = file.readline()
-    file.close()
-    return text
-
-def start():
-    banner = "banner_motd.txt"
-    password = "password.txt"
-
-    if path.exists(banner) == False:
-        createFile(banner)
-    if path.exists('password.txt') == False:
-        createFile(password)
-
-    banner = openFile(banner)
-    text = openFile(password)
-
-    passw = str("null")
-    if len(banner) > 0:
+def exec_normal():
+    if path.exists(bannerMotdFile):
+        banner = open_file(bannerMotdFile)
         print(banner+"\n")
-
-    if text != "":
+    if path.exists(passwordFile):
+        text = open_file(passwordFile)
+        passw = str("null")
         text = text.split(" ")
         password = text[0]
         login = text[1]
         if login == '1':
-            rep = True
             print("User Access Verification\n")
-            while passw!=password:
+            while passw != password:
                 passw = input("Password: ")
             print()
     flag = True
 
     while flag:
         hostname = host()
-        comm = input(hostname+"> ")
+        comm = input(hostname + "> ")
         comm = comm.split(" ")
         if comm[0] == "enable":
-            Exec()
+            exec_privileged()
         elif comm[0] == "?":
             if len(comm) == 1:
                 print('''Exec commands:
@@ -296,13 +271,14 @@ def start():
         else:
             print("Comando no reconocido.")
 
+
 flag = True
 while flag:
-    clear = lambda: os.system('cls')
+    clear = lambda: os.system('clear')
     clear()
     starting = input("")
     clear()
     if starting == "exit":
         flag = False
     else:
-        start()
+        exec_normal()
