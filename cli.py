@@ -6,6 +6,7 @@
 ###
 import os
 import os.path as path
+import getpass
 import time
 
 hostnameFile = 'hostname.txt'
@@ -14,14 +15,7 @@ bannerMotdFile = 'banner_motd.txt'
 passwordFile = 'password.txt'
 
 
-def create_file(file):
-    file = open(file, 'w')
-    file.close()
-
-
 def modify_file(file, value):
-    if not path.exists(file):
-        create_file(file)
     file = open(file, 'w')
     file.write(value)
     file.close()
@@ -62,10 +56,10 @@ def line():
         comm = input(hostname + "(config-line)# ")
         comm = comm.split(" ")
         if comm[0] == "password":
-            modify_file(passwordFile,comm[1]+" 0")
+            modify_file(passwordFile, comm[1] + " 0")
         elif comm[0] == "login":
             passw = open_file(passwordFile)
-            modify_file(passwordFile,passw[0:len(passw)-2]+" 1")
+            modify_file(passwordFile, passw[0:len(passw)-2] + " 1")
         elif comm[0] == "exit":
             flag = False
         else:
@@ -104,7 +98,7 @@ def conf():
                 print("% Incomplete command")
         elif comm[0] == "hostname":
             if 1 < len(comm) < 3:
-                modify_file(hostnameFile,comm[1])
+                modify_file(hostnameFile, comm[1])
             elif len(comm) > 2:
                 input("Invalid input detected")
             else:
@@ -163,8 +157,8 @@ def ping(ip):
     print('''\nType escape sequence to abort.
 Sending 5, 100-byte ICMP Echos to ''' + ip + ''', timeout is 2 seconds:''')
     for x in range(0, 5):
-        print(".")
         time.sleep(2)
+        print(".")
     print("\nSuccess rate is 5 percent (5/5)\n")
 
 
@@ -173,14 +167,15 @@ def exec_privileged():
         password = open_file(execFile)
         passw = str("null")
         while passw != password:
-            passw = input("Password: ")
+            passw = getpass.getpass();
+    hostname = host()
     flag = True
     while flag:
-        hostname = host()
         comm = input(hostname + "# ")
-        if comm == "conf term" or comm == "config terminal" or comm == "config term" or comm == "configure terminal":
+        comm = comm.split(" ")
+        if " ".join(comm) == "conf term" or " ".join(comm) == "config terminal":
             conf()
-        elif comm == "?":
+        elif comm[0] == "?":
             if len(comm) == 1:
                 print('''Exec commands:
   clear       Reset functions
@@ -213,7 +208,14 @@ def exec_privileged():
   write       Write running configuration to memory, network, or''')
             else:
                 input("Invalid input detected")
-        elif comm == "exit" or comm == "disable":
+        elif comm[0] == "ping":
+            if len(comm) == 1:
+                print("% Incomplete command")
+            elif len(comm) < 2:
+                print("Invalid input detected")
+            else:
+                ping(comm[1])
+        elif comm[0] == "exit" or comm == "disable":
             flag = False
         else:
             print("Comando no reconocido.")
@@ -232,12 +234,12 @@ def exec_normal():
         if login == '1':
             print("User Access Verification\n")
             while passw != password:
-                passw = input("Password: ")
+                passw = getpass.getpass();
             print()
-    flag = True
 
+    hostname = host()
+    flag = True
     while flag:
-        hostname = host()
         comm = input(hostname + "> ")
         comm = comm.split(" ")
         if comm[0] == "enable":
@@ -276,9 +278,9 @@ flag = True
 while flag:
     clear = lambda: os.system('clear')
     clear()
-    starting = input("")
+    starting = input()
     clear()
-    if starting == "exit":
-        flag = False
-    else:
+    if starting == "":
         exec_normal()
+    else:
+        flag = False
