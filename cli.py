@@ -4,6 +4,7 @@
 # 215818158
 # Tecnologías de la Información
 ###
+
 import os
 import os.path as path
 import getpass
@@ -23,7 +24,7 @@ def modify_file(file, value):
 
 def open_file(file):
     file = open(file, 'r')
-    text = file.readline()
+    text = file.read()
     file.close()
     return text
 
@@ -100,9 +101,9 @@ def conf():
             if 1 < len(comm) < 3:
                 modify_file(hostnameFile, comm[1])
             elif len(comm) > 2:
-                input("Invalid input detected")
+                print("Invalid input detected")
             else:
-                input("% Incomplete command")
+                print("% Incomplete command")
         elif comm[0] == "banner":
             if len(comm) > 1:
                 comm = " ".join(comm)
@@ -148,6 +149,8 @@ def conf():
             else:
                 input("Invalid input detected")
         elif comm[0] == "exit" or comm[0] == "end":
+            print("%SYS-5-CONFIG_I: Configured from console by console")
+            getpass.getpass('')
             flag = False
         else:
             print("Comando no reconocido.")
@@ -163,17 +166,13 @@ Sending 5, 100-byte ICMP Echos to ''' + ip + ''', timeout is 2 seconds:''')
 
 
 def exec_privileged():
-    if path.exists(execFile):
-        password = open_file(execFile)
-        passw = str("null")
-        while passw != password:
-            passw = getpass.getpass();
-    hostname = host()
     flag = True
+    hostname = host()
     while flag:
         comm = input(hostname + "# ")
         comm = comm.split(" ")
         if " ".join(comm) == "conf term" or " ".join(comm) == "config terminal":
+            print("Enter configuration commands, one per line.  End with CNTL/Z.")
             conf()
         elif comm[0] == "?":
             if len(comm) == 1:
@@ -222,28 +221,54 @@ def exec_privileged():
 
 
 def exec_normal():
+    flag = True
     if path.exists(bannerMotdFile):
         banner = open_file(bannerMotdFile)
         print(banner+"\n")
+
     if path.exists(passwordFile):
         text = open_file(passwordFile)
         passw = str("null")
         text = text.split(" ")
         password = text[0]
         login = text[1]
+        count = 0
         if login == '1':
             print("User Access Verification\n")
-            while passw != password:
-                passw = getpass.getpass();
+            while count < 3:
+                passw = getpass.getpass()
+                if password != passw:
+                    flag = False
+                    count = count + 1
+                else:
+                    count = 3
+                    flag = True
             print()
 
     hostname = host()
-    flag = True
     while flag:
         comm = input(hostname + "> ")
         comm = comm.split(" ")
         if comm[0] == "enable":
-            exec_privileged()
+            if path.exists(execFile):
+                password = open_file(execFile)
+                passw = str("null")
+                count = 0
+                while count < 3:
+                    passw = getpass.getpass()
+                    if password != passw:
+                        execEntry = False
+                        count = count + 1
+                    else:
+                        count = 3
+                        execEntry = True
+            else:
+                execEntry = True
+            if execEntry:
+                exec_privileged()
+                flag = False
+            else:
+                print("% Bad secrets\n")
         elif comm[0] == "?":
             if len(comm) == 1:
                 print('''Exec commands:
@@ -278,7 +303,7 @@ flag = True
 while flag:
     clear = lambda: os.system('clear')
     clear()
-    starting = input()
+    starting = getpass.getpass('')
     clear()
     if starting == "":
         exec_normal()
