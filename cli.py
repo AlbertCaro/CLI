@@ -40,8 +40,7 @@ def host():
 def interf(file):
     flag = True
     while flag:
-        hostname = host()
-        comm = input(hostname + "(config-if)# ")
+        comm = input(host() + "(config-if)# ")
         comm = comm.split(" ")
         if comm[0] == "ip":
             if 2 < len(comm) < 5 and comm[1] == "address":
@@ -61,8 +60,7 @@ def interf(file):
 def line(file):
     flag = True
     while flag:
-        hostname = host()
-        comm = input(hostname + "(config-line)# ")
+        comm = input(host() + "(config-line)# ")
         comm = comm.split(" ")
         if comm[0] == "password":
             modify_file(file, comm[1] + " 0")
@@ -83,8 +81,7 @@ def line(file):
 def conf():
     flag = True
     while flag:
-        hostname = host()
-        comm = input(hostname + "(config)# ")
+        comm = input(host() + "(config)# ")
         comm = comm.split(" ")
         if comm[0] == "line":
             if 1 < len(comm) < 5:
@@ -228,11 +225,28 @@ Tracing the route to ''' + ip + '''\n''')
             time.sleep(2)
 
 
+def running_interface(type, ref, num):
+    print(type + "0/" + num)
+    if path.exists(ref + num + ".txt"):
+        ip = open_file(ref + num + ".txt")
+        print(" ip address " + ip)
+    print("!")
+
+
+def running_line(file):
+    if path.exists(file):
+        info = open_file(file)
+        info = info.split(" ")
+        login = info[1]
+        if login == "1":
+            print("login")
+    print("!")
+
+
 def exec_privileged():
     flag = True
     while flag:
-        hostname = host()
-        comm = input(hostname + "# ")
+        comm = input(host() + "# ")
         comm = comm.split(" ")
         if " ".join(comm) == "conf term" or " ".join(comm) == "config terminal":
             print("Enter configuration commands, one per line.  End with CNTL/Z.")
@@ -280,7 +294,7 @@ def exec_privileged():
         elif " ".join(comm) == "show ip interface brief":
             print("Interface               IP-Address          OK? Method Status")
             print("Protocol")
-            for i in range(1,25):
+            for i in range(1, 25):
                 show_interface("fa0" + str(i) + ".txt", i, "FastEthernet")
             if path.exists("vlan1.txt"):
                 infoIp = open_file("vlan1.txt")
@@ -292,8 +306,8 @@ def exec_privileged():
             blank = "      "
             for j in range(1, rep):
                 blank = blank + " "
-            for i in range(1,3):
-                show_interface("eth"+str(i)+".txt",i,"GigabitEthernet")
+            for i in range(1, 3):
+                show_interface("eth"+str(i)+".txt", i, "GigabitEthernet")
             print("Vlan1                   "+ip+blank+"YES manual")
             print("administratively down down")
         elif comm[0] == "traceroute":
@@ -315,7 +329,7 @@ no service timestamps log datetime msec
 no service timestamps debug datetime msec
 no service password-encryption
 !
-hostname '''+hostname+'''
+hostname '''+host()+'''
 !
 !
 !
@@ -324,51 +338,24 @@ hostname '''+hostname+'''
 spanning-tree mode pvst
 !''')
                 for i in range(1, 31):
-                    print("interface FastEthernet0/"+str(i))
-                    if path.exists("fa0"+str(i)+".txt"):
-                        ip = open_file("fa0"+str(i)+".txt")
-                        print(" ip address "+ip)
-                    print("!")
+                    running_interface("FastEthernet", "fa0", str(i))
                 for i in range(1, 3):
-                    print("GigabitEthernet0/"+str(i))
-                    if path.exists("eth0"+str(i)+".txt"):
-                        ip = open_file("eth0"+str(i)+".txt")
-                        print(" ip address "+ip)
-                    print("!")
+                    running_interface("GigabitEthernet", "eth0", str(i))
                 print("interface Vlan1")
                 if path.exists("vlan1.txt"):
                     ip = open_file("vlan1.txt")
                     print(" ip address "+ip)
-                    print(" shutdown")
                 else:
                     print(" no ip address")
                 print(" shutdown")
                 for i in range(0, 4):
                     print("!")
                 print("line con 0")
-                if path.exists(console):
-                    info = open_file(console)
-                    info = info.split(" ")
-                    login = info[1]
-                    if login == "1":
-                        print("login")
-                print("!")
+                running_line(console)
                 print("line vty 0 4")
-                if path.exists("vty04.txt"):
-                    info = open_file("vty04.txt")
-                    info = info.split(" ")
-                    login = info[1]
-                    if login == "1":
-                        print("login")
-                print("!")
+                running_line("vty04.txt")
                 print("line vty 5 15")
-                if path.exists("vty515.txt"):
-                    info = open_file("vty515.txt")
-                    info = info.split(" ")
-                    login = info[1]
-                    if login == "1":
-                        print("login")
-                print("!")
+                running_line("vty515.txt")
                 for i in range(0, 3):
                     print("!")
                 print("end")
@@ -406,8 +393,7 @@ def exec_normal():
             print()
 
     while flag:
-        hostname = host()
-        comm = input(hostname + "> ")
+        comm = input(host() + "> ")
         comm = comm.split(" ")
         if comm[0] == "enable":
             if path.exists(execFile):
