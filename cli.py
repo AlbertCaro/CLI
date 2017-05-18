@@ -13,7 +13,7 @@ import time
 hostnameFile = 'hostname.txt'
 execFile = 'exec.txt'
 bannerMotdFile = 'banner_motd.txt'
-passwordFile = 'password.txt'
+console = 'console 0.txt'
 
 
 def modify_file(file, value):
@@ -37,30 +37,39 @@ def host():
     return hostname
 
 
-def interf():
-    hostname = host()
+def interf(file):
     flag = True
     while flag:
+        hostname = host()
         comm = input(hostname + "(config-if)# ")
-        if comm == "":
-            print()
-        elif comm == "exit":
+        comm = comm.split(" ")
+        if comm[0] == "ip":
+            if 2 < len(comm) < 5 and comm[1] == "address":
+                modify_file(file, comm[2] + " " + comm[3])
+            elif 4 < len(comm) < 2:
+                print("% Incomplete command.")
+            else:
+                print("% Invalid input detected.")
+        elif comm[0] == "exit":
             flag = False
         else:
             print("Comando no reconocido.")
 
 
-def line():
-    hostname = host()
+def line(file):
     flag = True
     while flag:
+        hostname = host()
         comm = input(hostname + "(config-line)# ")
         comm = comm.split(" ")
         if comm[0] == "password":
-            modify_file(passwordFile, comm[1] + " 0")
+            modify_file(file, comm[1] + " 0")
         elif comm[0] == "login":
-            passw = open_file(passwordFile)
-            modify_file(passwordFile, passw[0:len(passw)-2] + " 1")
+            if path.exists(file):
+                passw = open_file(file)
+                modify_file(file, passw[0:len(passw)-2] + " 1")
+            else:
+                print("% Login disabled on line 0, until 'password' is set")
         elif comm[0] == "exit":
             flag = False
         else:
@@ -75,14 +84,17 @@ def conf():
         comm = comm.split(" ")
         if comm[0] == "line":
             if 1 < len(comm) < 5:
-                line()
+                line(comm[1] + " " + comm[2] + ".txt")
             elif len(comm) > 4:
                 print("Invalid input detected")
             else:
                 print("% Incomplete command")
         elif comm[0] == "interface":
+            inf = comm[1]
+            if inf[:2] == "fa":
+                comm[1] = "fa0"+inf[4:]
             if 1 < len(comm) < 3:
-                interf()
+                interf(comm[1] + ".txt")
             elif len(comm) > 2:
                 print("Invalid input detected")
             else:
@@ -167,8 +179,8 @@ Sending 5, 100-byte ICMP Echos to ''' + ip + ''', timeout is 2 seconds:''')
 
 def exec_privileged():
     flag = True
-    hostname = host()
     while flag:
+        hostname = host()
         comm = input(hostname + "# ")
         comm = comm.split(" ")
         if " ".join(comm) == "conf term" or " ".join(comm) == "config terminal":
@@ -214,6 +226,38 @@ def exec_privileged():
                 print("Invalid input detected")
             else:
                 ping(comm[1])
+        elif " ".join(comm) == "show ip interface brief":
+            print("Interface              IP-Address          OK? Method Status")
+            print("Protocol")
+            for i in range(1,25):
+                if path.exists("fa0"+str(i)+".txt"):
+                    infoIp = open_file("fa0"+str(i)+".txt")
+                    infoIp = infoIp.split(" ")
+                    ip = infoIp[0]
+                else:
+                    ip = "unassigned"
+                if len(str(i)) == 1:
+                    blank1 = "        "
+                else:
+                    blank1 = "       "
+                rep = 15 - len(ip)
+                blank2 = "      "
+                for j in range(1,rep):
+                    blank2 = blank2 + " "
+                print("FastEthernet0/"+str(i)+blank1+ip+blank2+"YES manual down")
+                print("down")
+            if path.exists("vlan1.txt"):
+                infoIp = open_file("vlan1.txt")
+                infoIp = infoIp.split(" ")
+                ip = infoIp[0]
+            else:
+                ip = "unassigned"
+            rep = 15 - len(ip)
+            blank = "      "
+            for j in range(1, rep):
+                blank = blank + " "
+            print("Vlan1                  "+ip+blank+"YES manual")
+            print("administratively down down")
         elif comm[0] == "exit" or comm == "disable":
             flag = False
         else:
@@ -226,8 +270,8 @@ def exec_normal():
         banner = open_file(bannerMotdFile)
         print(banner+"\n")
 
-    if path.exists(passwordFile):
-        text = open_file(passwordFile)
+    if path.exists(console):
+        text = open_file(console)
         passw = str("null")
         text = text.split(" ")
         password = text[0]
@@ -245,8 +289,8 @@ def exec_normal():
                     flag = True
             print()
 
-    hostname = host()
     while flag:
+        hostname = host()
         comm = input(hostname + "> ")
         comm = comm.split(" ")
         if comm[0] == "enable":
@@ -301,7 +345,7 @@ def exec_normal():
 
 flag = True
 while flag:
-    clear = lambda: os.system('clear')
+    clear = lambda: os.system('cls')
     clear()
     starting = getpass.getpass('')
     clear()
