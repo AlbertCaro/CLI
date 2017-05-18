@@ -50,6 +50,8 @@ def interf(file):
                 print("% Incomplete command.")
             else:
                 print("% Invalid input detected.")
+        elif " ".join(comm) == "":
+            pass
         elif comm[0] == "exit":
             flag = False
         else:
@@ -70,6 +72,8 @@ def line(file):
                 modify_file(file, passw[0:len(passw)-2] + " 1")
             else:
                 print("% Login disabled on line 0, until 'password' is set")
+        elif " ".join(comm) == "":
+            pass
         elif comm[0] == "exit":
             flag = False
         else:
@@ -90,15 +94,28 @@ def conf():
             else:
                 print("% Incomplete command")
         elif comm[0] == "interface":
-            inf = comm[1]
-            if inf[:2] == "fa":
-                comm[1] = "fa0"+inf[4:]
-            if 1 < len(comm) < 3:
-                interf(comm[1] + ".txt")
-            elif len(comm) > 2:
-                print("Invalid input detected")
+            do = True
+            if comm[1].find("/") > 0:
+                pos = comm[1].find("/")
+                value = comm[1]
+                typeInt = value[:pos]
+                num = value[len(value)-1:]
+                comm[1] = typeInt + num
+                if typeInt == "fa0":
+                    if 0 > int(num) > 24:
+                        do = False
+                elif typeInt == "eth0":
+                    if 0 > int(num) > 2:
+                        do = False
+            if do:
+                if 1 < len(comm) < 3:
+                    interf(comm[1] + ".txt")
+                elif len(comm) > 2:
+                    print("Invalid input detected")
+                else:
+                    print("% Incomplete command")
             else:
-                print("% Incomplete command")
+                print("%Invalid interface type and number")
         elif comm[0] == "enable":
             if 2 < len(comm) < 4:
                 if comm[1] == "password":
@@ -164,6 +181,8 @@ def conf():
             print("%SYS-5-CONFIG_I: Configured from console by console")
             getpass.getpass('')
             flag = False
+        elif " ".join(comm) == "":
+            pass
         else:
             print("Comando no reconocido.")
 
@@ -175,6 +194,38 @@ Sending 5, 100-byte ICMP Echos to ''' + ip + ''', timeout is 2 seconds:''')
         time.sleep(2)
         print(".")
     print("\nSuccess rate is 5 percent (5/5)\n")
+
+
+def show_interface(file, num, type):
+    if path.exists(file):
+        infoIp = open_file(file)
+        infoIp = infoIp.split(" ")
+        ip = infoIp[0]
+    else:
+        ip = "unassigned"
+    blank1 = ""
+    rep = 25 - len(type+"0/"+str(num))
+    for i in range(1, rep):
+        blank1 = blank1 + " "
+    rep = 15 - len(ip)
+    blank2 = "      "
+    for j in range(1, rep):
+        blank2 = blank2 + " "
+    print(type+"0/" + str(num) + blank1 + ip + blank2 + "YES manual down")
+    print("down")
+
+
+def traceroute(ip):
+    print('''Type escape sequence to abort.
+Tracing the route to ''' + ip + '''\n''')
+    for i in range(1, 31):
+        print(str(i), end="")
+        for j in range(0, 3):
+            if j < 3:
+                print(" * ", end="")
+            else:
+                print(" * ")
+            time.sleep(2)
 
 
 def exec_privileged():
@@ -227,25 +278,10 @@ def exec_privileged():
             else:
                 ping(comm[1])
         elif " ".join(comm) == "show ip interface brief":
-            print("Interface              IP-Address          OK? Method Status")
+            print("Interface               IP-Address          OK? Method Status")
             print("Protocol")
             for i in range(1,25):
-                if path.exists("fa0"+str(i)+".txt"):
-                    infoIp = open_file("fa0"+str(i)+".txt")
-                    infoIp = infoIp.split(" ")
-                    ip = infoIp[0]
-                else:
-                    ip = "unassigned"
-                if len(str(i)) == 1:
-                    blank1 = "        "
-                else:
-                    blank1 = "       "
-                rep = 15 - len(ip)
-                blank2 = "      "
-                for j in range(1,rep):
-                    blank2 = blank2 + " "
-                print("FastEthernet0/"+str(i)+blank1+ip+blank2+"YES manual down")
-                print("down")
+                show_interface("fa0" + str(i) + ".txt", i, "FastEthernet")
             if path.exists("vlan1.txt"):
                 infoIp = open_file("vlan1.txt")
                 infoIp = infoIp.split(" ")
@@ -256,10 +292,90 @@ def exec_privileged():
             blank = "      "
             for j in range(1, rep):
                 blank = blank + " "
-            print("Vlan1                  "+ip+blank+"YES manual")
+            for i in range(1,3):
+                show_interface("eth"+str(i)+".txt",i,"GigabitEthernet")
+            print("Vlan1                   "+ip+blank+"YES manual")
             print("administratively down down")
+        elif comm[0] == "traceroute":
+            if 1 < len(comm) < 3:
+                traceroute(comm[1])
+            elif len(comm) < 2:
+                print("% Incomplete command.")
+            else:
+                print("% Invalid input detected.")
+        elif comm[0] == "show":
+            if comm[1] == "running-config":
+
+                print('''Building configuration...
+
+Current configuration : 1045 bytes
+!
+version 12.2
+no service timestamps log datetime msec
+no service timestamps debug datetime msec
+no service password-encryption
+!
+hostname '''+hostname+'''
+!
+!
+!
+!
+!
+spanning-tree mode pvst
+!''')
+                for i in range(1, 31):
+                    print("interface FastEthernet0/"+str(i))
+                    if path.exists("fa0"+str(i)+".txt"):
+                        ip = open_file("fa0"+str(i)+".txt")
+                        print(" ip address "+ip)
+                    print("!")
+                for i in range(1, 3):
+                    print("GigabitEthernet0/"+str(i))
+                    if path.exists("eth0"+str(i)+".txt"):
+                        ip = open_file("eth0"+str(i)+".txt")
+                        print(" ip address "+ip)
+                    print("!")
+                print("interface Vlan1")
+                if path.exists("vlan1.txt"):
+                    ip = open_file("vlan1.txt")
+                    print(" ip address "+ip)
+                    print(" shutdown")
+                else:
+                    print(" no ip address")
+                print(" shutdown")
+                for i in range(0, 4):
+                    print("!")
+                print("line con 0")
+                if path.exists(console):
+                    info = open_file(console)
+                    info = info.split(" ")
+                    login = info[1]
+                    if login == "1":
+                        print("login")
+                print("!")
+                print("line vty 0 4")
+                if path.exists("vty04.txt"):
+                    info = open_file("vty04.txt")
+                    info = info.split(" ")
+                    login = info[1]
+                    if login == "1":
+                        print("login")
+                print("!")
+                print("line vty 5 15")
+                if path.exists("vty515.txt"):
+                    info = open_file("vty515.txt")
+                    info = info.split(" ")
+                    login = info[1]
+                    if login == "1":
+                        print("login")
+                print("!")
+                for i in range(0, 3):
+                    print("!")
+                print("end")
         elif comm[0] == "exit" or comm == "disable":
             flag = False
+        elif " ".join(comm) == "":
+            pass
         else:
             print("Comando no reconocido.")
 
@@ -337,6 +453,15 @@ def exec_normal():
                 print("Invalid input detected")
             else:
                 ping(comm[1])
+        elif comm[0] == "traceroute":
+            if 1 < len(comm) < 3:
+                traceroute(comm[1])
+            elif len(comm) < 2:
+                print("% Incomplete command.")
+            else:
+                print("% Invalid input detected.")
+        elif " ".join(comm) == "":
+            pass
         elif comm[0] == "exit" or comm[0] == "logout":
             flag = False
         else:
