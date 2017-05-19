@@ -7,6 +7,7 @@
 
 import os
 import os.path as path
+import shutil
 import getpass
 import time
 
@@ -84,35 +85,46 @@ def conf():
         comm = input(host() + "(config)# ")
         comm = comm.split(" ")
         if comm[0] == "line":
-            if 1 < len(comm) < 5:
-                line(comm[1] + " " + comm[2] + ".txt")
-            elif len(comm) > 4:
-                print("Invalid input detected")
-            else:
-                print("% Incomplete command")
-        elif comm[0] == "interface":
-            do = True
-            if comm[1].find("/") > 0:
-                pos = comm[1].find("/")
-                value = comm[1]
-                typeInt = value[:pos]
-                num = value[len(value)-1:]
-                comm[1] = typeInt + num
-                if typeInt == "fa0":
-                    if 0 > int(num) > 24:
-                        do = False
-                elif typeInt == "eth0":
-                    if 0 > int(num) > 2:
-                        do = False
-            if do:
-                if 1 < len(comm) < 3:
-                    interf(comm[1] + ".txt")
-                elif len(comm) > 2:
-                    print("Invalid input detected")
-                else:
+            do = False
+            if comm[1] == "console":
+                if 2 < len(comm) < 4 and comm[2] == "0":
+                    file = comm[1] + " " + comm[2] + ".txt"
+                    do = True
+                elif len(comm) < 3:
                     print("% Incomplete command")
+                else:
+                    print("Invalid input detected")
+            elif comm[1] == "vty":
+                if 2 < len(comm) < 5 and len(comm) != 3 and ((comm[2] == "0" and comm[3] == "4") or (comm[2] == "5" and comm[3] == "15")):
+                    file = comm[1] + " " + comm[2] + "" + comm[3] + ".txt"
+                    do = True
+                elif len(comm) < 3:
+                    print("% Incomplete command")
+                else:
+                    print("Invalid input detected")
             else:
-                print("%Invalid interface type and number")
+                print("Invalid input detected")
+                print("% Incomplete command")
+            if do:
+                line(file)
+        elif comm[0] == "interface":
+            interface = comm[1]
+            pos = interface.find("/")
+            num = interface[pos+1:]
+            if pos > 0:
+                if interface[:pos] == "eth0":
+                    limit = 3
+                else:
+                    limit = 25
+                if 0 < int(num) < limit:
+                    interf(interface[:pos] + num + ".txt")
+                else:
+                    print("Invalid input detected")
+            elif comm[1] == "vlan1":
+                if 0 < len(comm) < 3:
+                    interf("vlan1.txt")
+            else:
+                print("Invalid input detected")
         elif comm[0] == "enable":
             if 2 < len(comm) < 4:
                 if comm[1] == "password":
@@ -208,8 +220,7 @@ def show_interface(file, num, type):
     blank2 = "      "
     for j in range(1, rep):
         blank2 = blank2 + " "
-    print(type+"0/" + str(num) + blank1 + ip + blank2 + "YES manual down")
-    print("down")
+    print(type+"0/" + str(num) + blank1 + ip + blank2 + "YES manual down          down")
 
 
 def traceroute(ip):
@@ -241,6 +252,46 @@ def running_line(file):
         if login == "1":
             print("login")
     print("!")
+
+
+def configuration(folderO, folderD):
+    if path.exists(folderO + execFile):
+        shutil.copyfile(folderO + execFile, folderD + execFile)
+    if path.exists(folderO + bannerMotdFile):
+        shutil.copyfile(folderO + bannerMotdFile, folderD + bannerMotdFile)
+    if path.exists(folderO + console):
+        shutil.copyfile(folderO + console, folderD + console)
+    for i in range(1, 25):
+        if path.exists(folderO + "fa0" + str(i) + ".txt"):
+            shutil.copyfile(folderO + "fa0" + str(i) + ".txt", folderD + "fa0" + str(i) + ".txt")
+    for i in range(1, 3):
+        if path.exists(folderO + "eth0" + str(i) + ".txt"):
+            shutil.copyfile(folderO + "eth0" + str(i) + ".txt", folderD + "eth0" + str(i) + ".txt")
+    if path.exists(folderO + "vlan1.txt"):
+        shutil.copyfile(folderO + "vlan1.txt", folderD + "vlan1.txt")
+    if path.exists(folderO + "vty 04.txt"):
+        shutil.copyfile(folderO + "vty 04.txt", folderD + "vty 04.txt")
+    if path.exists(folderO + "vty 515.txt"):
+        shutil.copyfile(folderO + "vty 515.txt", folderD + "vty 515.txt")
+
+
+def delete_running(folder):
+    if path.exists(folder + execFile):
+        os.remove(folder + execFile)
+    if path.exists(folder + console):
+        os.remove(folder + console)
+    for i in range(1, 25):
+        if path.exists(folder + "fa0" + str(i) + ".txt"):
+            os.remove(folder + "fa0" + str(i) + ".txt")
+    for i in range(1, 3):
+        if path.exists(folder + "eth0" + str(i) + ".txt"):
+            os.remove(folder + "eth0" + str(i) + ".txt")
+    if path.exists(folder + "vlan1.txt"):
+        os.remove(folder + "vlan1.txt")
+    if path.exists(folder + "vty 04.txt"):
+        os.remove(folder + "vty 04.txt")
+    if path.exists(folder + "vty 515.txt"):
+        os.remove(folder + "vty 515.txt")
 
 
 def exec_privileged():
@@ -292,8 +343,7 @@ def exec_privileged():
             else:
                 ping(comm[1])
         elif " ".join(comm) == "show ip interface brief":
-            print("Interface               IP-Address          OK? Method Status")
-            print("Protocol")
+            print("Interface               IP-Address          OK? Method Status        Protocol")
             for i in range(1, 25):
                 show_interface("fa0" + str(i) + ".txt", i, "FastEthernet")
             if path.exists("vlan1.txt"):
@@ -307,9 +357,8 @@ def exec_privileged():
             for j in range(1, rep):
                 blank = blank + " "
             for i in range(1, 3):
-                show_interface("eth"+str(i)+".txt", i, "GigabitEthernet")
-            print("Vlan1                   "+ip+blank+"YES manual")
-            print("administratively down down")
+                show_interface("eth" + str(i) + ".txt", i, "GigabitEthernet")
+            print("Vlan1                   "+ip+blank+"YES manual               administratively down")
         elif comm[0] == "traceroute":
             if 1 < len(comm) < 3:
                 traceroute(comm[1])
@@ -319,7 +368,6 @@ def exec_privileged():
                 print("% Invalid input detected.")
         elif comm[0] == "show":
             if comm[1] == "running-config":
-
                 print('''Building configuration...
 
 Current configuration : 1045 bytes
@@ -359,6 +407,114 @@ spanning-tree mode pvst
                 for i in range(0, 3):
                     print("!")
                 print("end")
+            elif comm[1] == "startup-config":
+                if not path.exists("/nvram"):
+                    print("startup-config is not present")
+        elif " ".join(comm) == "copy running-config startup-config":
+            if path.exists("startup"):
+                configuration("", "startup/")
+            else:
+                os.mkdir("startup")
+                configuration("", "startup/")
+        elif " ".join(comm) == "copy startup-config running-config":
+            if path.exists("startup"):
+                configuration("startup/", "")
+            else:
+                os.mkdir("startup")
+                configuration("startup/", "")
+        elif comm[0] == "reload":
+            confirm = input("Proceed with reload? [confirm] ")
+            if confirm == "y" or confirm == "Y" or confirm == "":
+                print('''C2960 Boot Loader (C2960-HBOOT-M) Version 12.2(25r)FX, RELEASE SOFTWARE (fc4)
+Cisco WS-C2960-24TT (RC32300) processor (revision C0) with 21039K bytes of memory.
+2960-24TT starting...
+Base ethernet MAC Address: 0090.0C3B.D365
+Xmodem file system is available.
+Initializing Flash...
+flashfs[0]: 1 files, 0 directories
+flashfs[0]: 0 orphaned files, 0 orphaned directories
+flashfs[0]: Total bytes: 64016384
+flashfs[0]: Bytes used: 4414921
+flashfs[0]: Bytes available: 59601463
+flashfs[0]: flashfs fsck took 1 seconds.
+...done Initializing Flash.
+
+Boot Sector Filesystem (bs:) installed, fsid: 3
+Parameter Block Filesystem (pb:) installed, fsid: 4
+
+
+Loading "flash:/c2960-lanbase-mz.122-25.FX.bin"...''')
+                for i in range(0, 15):
+                    print("#")
+                    time.sleep(1)
+                print("[OK]")
+                print('''              Restricted Rights Legend
+
+Use, duplication, or disclosure by the Government is
+subject to restrictions as set forth in subparagraph
+(c) of the Commercial Computer Software - Restricted
+Rights clause at FAR sec. 52.227-19 and subparagraph
+(c) (1) (ii) of the Rights in Technical Data and Computer
+Software clause at DFARS sec. 252.227-7013.
+
+           cisco Systems, Inc.
+           170 West Tasman Drive
+           San Jose, California 95134-1706
+
+
+
+
+Cisco IOS Software, C2960 Software (C2960-LANBASE-M), Version 12.2(25)FX, RELEASE SOFTWARE (fc1)
+Copyright (c) 1986-2005 by Cisco Systems, Inc.
+Compiled Wed 12-Oct-05 22:05 by pt_team
+Image text-base: 0x80008098, data-base: 0x814129C4
+
+
+
+Cisco WS-C2960-24TT (RC32300) processor (revision C0) with 21039K bytes of memory.
+
+
+24 FastEthernet/IEEE 802.3 interface(s)
+2 Gigabit Ethernet/IEEE 802.3 interface(s)
+
+63488K bytes of flash-simulated non-volatile configuration memory.
+Base ethernet MAC Address       : 0090.0C3B.D365
+Motherboard assembly number     : 73-9832-06
+Power supply part number        : 341-0097-02
+Motherboard serial number       : FOC103248MJ
+Power supply serial number      : DCA102133JA
+Model revision number           : B0
+Motherboard revision number     : C0
+Model number                    : WS-C2960-24TT
+System serial number            : FOC1033Z1EY
+Top Assembly Part Number        : 800-26671-02
+Top Assembly Revision Number    : B0
+Version ID                      : V02
+CLEI Code Number                : COM3K00BRA
+Hardware Board Revision Number  : 0x01
+
+
+Switch   Ports  Model              SW Version              SW Image
+------   -----  -----              ----------              ----------
+*    1   26     WS-C2960-24TT      12.2                    C2960-LANBASE-M
+
+Cisco IOS Software, C2960 Software (C2960-LANBASE-M), Version 12.2(25)FX, RELEASE SOFTWARE (fc1)
+Copyright (c) 1986-2005 by Cisco Systems, Inc.
+Compiled Wed 12-Oct-05 22:05 by pt_team
+
+''')
+                getpass.getpass("Press RETURN to get started!")
+                delete_running("startup/")
+                delete_running("")
+                if path.exists("startup"):
+                    os.removedirs("startup")
+                if path.exists(hostnameFile):
+                    os.remove(hostnameFile)
+                if path.exists("startup/" + hostnameFile):
+                    os.remove("startup/" + hostnameFile)
+                flag = False
+            else:
+                pass
         elif comm[0] == "exit" or comm == "disable":
             flag = False
         elif " ".join(comm) == "":
@@ -371,11 +527,10 @@ def exec_normal():
     flag = True
     if path.exists(bannerMotdFile):
         banner = open_file(bannerMotdFile)
-        print(banner+"\n")
+        print(banner + "\n")
 
     if path.exists(console):
         text = open_file(console)
-        passw = str("null")
         text = text.split(" ")
         password = text[0]
         login = text[1]
@@ -451,16 +606,18 @@ def exec_normal():
         elif comm[0] == "exit" or comm[0] == "logout":
             flag = False
         else:
-            print("Comando no reconocido.")
+            print("% Invalid input detected.")
 
 
 flag = True
 while flag:
-    clear = lambda: os.system('cls')
+    clear = lambda: os.system('clear')
     clear()
     starting = getpass.getpass('')
     clear()
     if starting == "":
+        configuration("startup/", "")
         exec_normal()
+        delete_running("")
     else:
         flag = False
