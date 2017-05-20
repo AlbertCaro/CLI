@@ -10,6 +10,7 @@ import os.path as path
 import shutil
 import getpass
 import time
+import platform
 
 hostnameFile = 'hostname.txt'
 execFile = 'exec.txt'
@@ -276,6 +277,8 @@ def configuration(folderO, folderD):
 
 
 def delete_running(folder):
+    if path.exists(folder + hostnameFile):
+        os.remove(folder + hostnameFile)
     if path.exists(folder + execFile):
         os.remove(folder + execFile)
     if path.exists(folder + console):
@@ -611,10 +614,14 @@ def exec_normal():
 
 flag = True
 while flag:
-    clear = lambda: os.system('clear')
-    clear()
+    clear = platform.system()
+    if clear == "Windows":
+        clear = "cls"
+    elif clear == "Linux":
+        clear = "clear"
+    os.system(clear)
     starting = getpass.getpass('')
-    clear()
+    os.system(clear)
     if starting == "":
         configuration("startup/", "")
         exec_normal()
