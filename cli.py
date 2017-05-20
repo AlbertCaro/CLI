@@ -256,29 +256,37 @@ def running_line(file):
 
 
 def configuration(folderO, folderD):
+    flag = False
     if path.exists(folderO + execFile):
+        flag = True
         shutil.copyfile(folderO + execFile, folderD + execFile)
     if path.exists(folderO + bannerMotdFile):
+        flag = True
         shutil.copyfile(folderO + bannerMotdFile, folderD + bannerMotdFile)
     if path.exists(folderO + console):
+        flag = True
         shutil.copyfile(folderO + console, folderD + console)
     for i in range(1, 25):
         if path.exists(folderO + "fa0" + str(i) + ".txt"):
+            flag = True
             shutil.copyfile(folderO + "fa0" + str(i) + ".txt", folderD + "fa0" + str(i) + ".txt")
     for i in range(1, 3):
         if path.exists(folderO + "eth0" + str(i) + ".txt"):
+            flag = True
             shutil.copyfile(folderO + "eth0" + str(i) + ".txt", folderD + "eth0" + str(i) + ".txt")
     if path.exists(folderO + "vlan1.txt"):
+        flag = True
         shutil.copyfile(folderO + "vlan1.txt", folderD + "vlan1.txt")
     if path.exists(folderO + "vty 04.txt"):
+        flag = True
         shutil.copyfile(folderO + "vty 04.txt", folderD + "vty 04.txt")
     if path.exists(folderO + "vty 515.txt"):
+        flag = True
         shutil.copyfile(folderO + "vty 515.txt", folderD + "vty 515.txt")
+    return flag
 
 
 def delete_running(folder):
-    if path.exists(folder + hostnameFile):
-        os.remove(folder + hostnameFile)
     if path.exists(folder + execFile):
         os.remove(folder + execFile)
     if path.exists(folder + console):
@@ -295,6 +303,11 @@ def delete_running(folder):
         os.remove(folder + "vty 04.txt")
     if path.exists(folder + "vty 515.txt"):
         os.remove(folder + "vty 515.txt")
+
+
+def delete_extra(file):
+    if path.exists(file):
+        os.remove(file)
 
 
 def exec_privileged():
@@ -414,17 +427,15 @@ spanning-tree mode pvst
                 if not path.exists("/nvram"):
                     print("startup-config is not present")
         elif " ".join(comm) == "copy running-config startup-config":
-            if path.exists("startup"):
-                configuration("", "startup/")
-            else:
+            if not path.exists("startup"):
                 os.mkdir("startup")
-                configuration("", "startup/")
+            if not configuration("", "startup/"):
+                os.removedirs("startup")
         elif " ".join(comm) == "copy startup-config running-config":
             if path.exists("startup"):
                 configuration("startup/", "")
             else:
-                os.mkdir("startup")
-                configuration("startup/", "")
+                pass
         elif comm[0] == "reload":
             confirm = input("Proceed with reload? [confirm] ")
             if confirm == "y" or confirm == "Y" or confirm == "":
@@ -450,6 +461,13 @@ Loading "flash:/c2960-lanbase-mz.122-25.FX.bin"...''')
                 for i in range(0, 15):
                     print("#")
                     time.sleep(1)
+                delete_extra(bannerMotdFile)
+                delete_extra(hostnameFile)
+                delete_extra("startup/" + hostnameFile)
+                delete_running("")
+                delete_running("startup/")
+                if path.exists("startup"):
+                    os.removedirs("startup")
                 print("[OK]")
                 print('''              Restricted Rights Legend
 
@@ -507,14 +525,6 @@ Compiled Wed 12-Oct-05 22:05 by pt_team
 
 ''')
                 getpass.getpass("Press RETURN to get started!")
-                delete_running("startup/")
-                delete_running("")
-                if path.exists("startup"):
-                    os.removedirs("startup")
-                if path.exists(hostnameFile):
-                    os.remove(hostnameFile)
-                if path.exists("startup/" + hostnameFile):
-                    os.remove("startup/" + hostnameFile)
                 flag = False
             else:
                 pass
@@ -523,7 +533,7 @@ Compiled Wed 12-Oct-05 22:05 by pt_team
         elif " ".join(comm) == "":
             pass
         else:
-            print("Comando no reconocido.")
+            print("% Invalid input detected.")
 
 
 def exec_normal():
@@ -556,7 +566,6 @@ def exec_normal():
         if comm[0] == "enable":
             if path.exists(execFile):
                 password = open_file(execFile)
-                passw = str("null")
                 count = 0
                 while count < 3:
                     passw = getpass.getpass()
