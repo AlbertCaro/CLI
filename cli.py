@@ -54,6 +54,24 @@ def interf(file):
                 print("% Incomplete command.")
             else:
                 print("Invalid input detected.")
+        elif comm[0] == "?":
+            print('''  cdp               Global CDP configuration subcommands
+  channel-group     Etherchannel/port bundling configuration
+  channel-protocol  Select the channel protocol (LACP, PAgP)
+  description       Interface specific description
+  duplex            Configure duplex operation.
+  exit              Exit from interface configuration mode
+  ip                Interface Internet Protocol config commands
+  lldp              LLDP interface subcommands
+  mdix              Set Media Dependent Interface with Crossover
+  mls               mls interface commands
+  no                Negate a command or set its defaults
+  shutdown          Shutdown the selected interface
+  spanning-tree     Spanning Tree Subsystem
+  speed             Configure speed operation.
+  storm-control     storm configuration
+  switchport        Set switching mode characteristics
+  tx-ring-limit     Configure PA level transmit ring limit''')
         elif " ".join(comm) == "":
             pass
         elif comm[0] == "exit":
@@ -75,6 +93,24 @@ def line(file):
                 modify_file(file, passw[0:len(passw) - 2] + " 1")
             else:
                 print("% Login disabled on line 0, until 'password' is set")
+        elif comm[0] == "?":
+            print('''Virtual Line configuration commands:
+  access-class  Filter connections based on an IP access list
+  databits      Set number of data bits per character
+  exec-timeout  Set the EXEC timeout
+  exit          Exit from line configuration mode
+  flowcontrol   Set the flow control
+  history       Enable and control the command history function
+  logging       Modify message logging facilities
+  login         Enable password checking
+  motd-banner   Enable the display of the MOTD banner
+  no            Negate a command or set its defaults
+  parity        Set terminal parity
+  password      Set a password
+  privilege     Change privilege level for line
+  speed         Set the transmit and receive speeds
+  stopbits      Set async line stop bits
+  transport     Define transport protocols for line''')
         elif " ".join(comm) == "":
             pass
         elif comm[0] == "exit":
@@ -124,7 +160,7 @@ def conf():
                 if 0 < int(num) < limit:
                     interf(interface[:pos] + num + ".txt")
                 else:
-                    print("Invalid input detected")
+                    print("%Invalid interface type and number")
             elif comm[1] == "vlan1":
                 if 0 < len(comm) < 3:
                     interf("vlan1.txt")
@@ -388,7 +424,7 @@ def exec_privileged():
   traceroute  Trace route to destination
   undebug     Disable debugging functions (see also 'debug')
   vlan        Configure VLAN parameters
-  write       Write running configuration to memory, network, or''')
+  write       Write running configuration to memory, network, or terminal''')
             else:
                 input("Invalid input detected")
         elif comm[0] == "ping":
@@ -457,16 +493,23 @@ spanning-tree mode pvst
             except:
                 print("% Incomplete command")
         elif comm[0] == "copy":
-            if comm[1] == "running-config":
-                if not os.path.exists("startup"):
-                    os.mkdir("startup")
-                if not configuration("", "startup/"):
-                    os.removedirs("startup")
-            else:
-                if os.path.exists("startup"):
-                    configuration("startup/", "")
+            if 2 < len(comm) < 4:
+                if comm[2] == "startup-config":
+                    if not os.path.exists("startup"):
+                        os.mkdir("startup")
+                    if not configuration("", "startup/"):
+                        os.removedirs("startup")
+                elif comm[2] == "running-config":
+                    if os.path.exists("startup"):
+                        configuration("startup/", "")
+                    else:
+                        print("%% Non-volatile configuration memory invalid or not present")
                 else:
-                    pass
+                    invalid_input(22)
+            elif comm[1] != "startup-config" and comm[1] != "running-config":
+                invalid_input(7)
+            else:
+                print("% Incomplete command")
         elif comm[0] == "reload":
             confirm = input("Proceed with reload? [confirm] ")
             if confirm == "y" or confirm == "Y" or confirm == "":
@@ -556,7 +599,9 @@ Compiled Wed 12-Oct-05 22:05 by pt_team
 
 ''')
                 getpass.getpass("Press RETURN to get started!")
+                print("\n\n")
                 flag = False
+                return False
             else:
                 pass
         elif comm[0] == "exit" or comm == "disable":
@@ -565,6 +610,7 @@ Compiled Wed 12-Oct-05 22:05 by pt_team
             pass
         else:
             print("% Invalid input detected.")
+    return True;
 
 
 def exec_normal():
@@ -609,8 +655,8 @@ def exec_normal():
             else:
                 execEntry = True
             if execEntry:
-                exec_privileged()
-                flag = False
+                if exec_privileged():
+                    flag = False
             else:
                 print("% Bad secrets\n")
         elif comm[0] == "?":
@@ -662,6 +708,6 @@ while flag:
     if starting == "":
         configuration("startup/", "")
         exec_normal()
-        delete_running("")
     else:
         flag = False
+delete_running("")
