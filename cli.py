@@ -197,13 +197,19 @@ def conf():
             print("Comando no reconocido.")
 
 
-def ping(ip):
+def ping_traceroute(ip, type):
     system = platform.system()
     if system == "Windows":
-        count = "-n"
+        if type == "ping":
+            command = type + " -n 4 "
+        else:
+            command = "tracert "
     elif system == "Linux":
-        count = "-c"
-    os.system("ping " + count + " 4 " + ip)
+        if type == "ping":
+            command = type + " -c 4 "
+        else:
+            command = type + " "
+    os.system(command + ip)
 
 
 def show_interface(file, num, type):
@@ -357,7 +363,7 @@ def exec_privileged():
             elif len(comm) < 2:
                 print("Invalid input detected")
             else:
-                ping(comm[1])
+                ping_traceroute(comm[1])
         elif " ".join(comm) == "show ip interface brief":
             print("Interface               IP-Address          OK? Method Status        Protocol")
             for i in range(1, 25):
@@ -605,10 +611,10 @@ def exec_normal():
             elif len(comm) < 2:
                 print("Invalid input detected")
             else:
-                ping(comm[1])
+                ping_traceroute(comm[1], "ping")
         elif comm[0] == "traceroute":
             if 1 < len(comm) < 3:
-                traceroute(comm[1])
+                ping_traceroute(comm[1], "traceroute")
             elif len(comm) < 2:
                 print("% Incomplete command.")
             else:
