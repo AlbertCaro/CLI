@@ -198,12 +198,12 @@ def conf():
 
 
 def ping(ip):
-    print('''\nType escape sequence to abort.
-Sending 5, 100-byte ICMP Echos to ''' + ip + ''', timeout is 2 seconds:''')
-    for x in range(0, 5):
-        time.sleep(2)
-        print(".")
-    print("\nSuccess rate is 5 percent (5/5)\n")
+    system = platform.system()
+    if system == "Windows":
+        count = "-n"
+    elif system == "Linux":
+        count = "-c"
+    os.system("ping " + count + " 4 " + ip)
 
 
 def show_interface(file, num, type):
