@@ -34,6 +34,14 @@ def host():
     return hostname
 
 
+def invalid_input(size_blanks):
+    size = len(host()) + size_blanks
+    for i in range(0, size):
+        print(" ", end="")
+    print("^")
+    print("% Invalid input detected at '^' marker.\n")
+
+
 def interf(file):
     flag = True
     while flag:
@@ -45,13 +53,13 @@ def interf(file):
             elif 4 < len(comm) < 2:
                 print("% Incomplete command.")
             else:
-                print("% Invalid input detected.")
+                print("Invalid input detected.")
         elif " ".join(comm) == "":
             pass
         elif comm[0] == "exit":
             flag = False
         else:
-            print("Comando no reconocido.")
+            print("Invalid input detected.")
 
 
 def line(file):
@@ -64,7 +72,7 @@ def line(file):
         elif comm[0] == "login":
             if os.path.exists(file):
                 passw = open_file(file)
-                modify_file(file, passw[0:len(passw)-2] + " 1")
+                modify_file(file, passw[0:len(passw) - 2] + " 1")
             else:
                 print("% Login disabled on line 0, until 'password' is set")
         elif " ".join(comm) == "":
@@ -72,7 +80,7 @@ def line(file):
         elif comm[0] == "exit":
             flag = False
         else:
-            print("Comando no reconocido.")
+            print("Invalid input detected.")
 
 
 def conf():
@@ -91,7 +99,8 @@ def conf():
                 else:
                     print("Invalid input detected")
             elif comm[1] == "vty":
-                if 2 < len(comm) < 5 and len(comm) != 3 and ((comm[2] == "0" and comm[3] == "4") or (comm[2] == "5" and comm[3] == "15")):
+                if 2 < len(comm) < 5 and len(comm) != 3 and (
+                            (comm[2] == "0" and comm[3] == "4") or (comm[2] == "5" and comm[3] == "15")):
                     file = comm[1] + " " + comm[2] + "" + comm[3] + ".txt"
                     do = True
                 elif len(comm) < 3:
@@ -106,7 +115,7 @@ def conf():
         elif comm[0] == "interface":
             interface = comm[1]
             pos = interface.find("/")
-            num = interface[pos+1:]
+            num = interface[pos + 1:]
             if pos > 0:
                 if interface[:pos] == "eth0":
                     limit = 3
@@ -189,15 +198,15 @@ def conf():
         elif " ".join(comm) == "":
             pass
         else:
-            print("Comando no reconocido.")
+            print("Invalid input detected.")
 
 
-def detect_system(actionWin, actionLinux):
+def detect_system(action_win, action_linux):
     system = platform.system()
     if system == "Windows":
-        command = actionWin
+        command = action_win
     elif system == "Linux":
-        command = actionLinux
+        command = action_linux
     return command
 
 
@@ -216,14 +225,37 @@ def show_interface(file, num, type):
     else:
         ip = "unassigned"
     blank1 = ""
-    rep = 25 - len(type+"0/"+str(num))
+    rep = 25 - len(type + "0/" + str(num))
     for i in range(1, rep):
         blank1 = blank1 + " "
     rep = 15 - len(ip)
     blank2 = "      "
     for j in range(1, rep):
         blank2 = blank2 + " "
-    print(type+"0/" + str(num) + blank1 + ip + blank2 + "YES manual down          down")
+    print(type + "0/" + str(num) + blank1 + ip + blank2 + "YES manual down          down")
+
+
+def print_ip_interface(comm):
+    if 1 < len(comm) < 5:
+        if comm[1] == "ip":
+            try:
+                if comm[2] == "interface":
+                    if 3 < len(comm):
+                        if comm[3] == "brief":
+                            ip_interface_brief()
+                        else:
+                            invalid_input(20)
+                    else:
+                        print('''Vlan1 is administratively down, line protocol is down
+  Internet protocol processing disabled''')
+                else:
+                    invalid_input(10)
+            except:
+                print("% Incomplete command.")
+        else:
+            invalid_input(7)
+    else:
+        print("% Incomplete command.")
 
 
 def running_interface(type, ref, num):
@@ -244,34 +276,34 @@ def running_line(file):
     print("!")
 
 
-def configuration(folderO, folderD):
+def configuration(folder_origin, folder_destiny):
     flag = False
-    if os.path.exists(folderO + execFile):
+    if os.path.exists(folder_origin + execFile):
         flag = True
-        shutil.copyfile(folderO + execFile, folderD + execFile)
-    if os.path.exists(folderO + bannerMotdFile):
+        shutil.copyfile(folder_origin + execFile, folder_destiny + execFile)
+    if os.path.exists(folder_origin + bannerMotdFile):
         flag = True
-        shutil.copyfile(folderO + bannerMotdFile, folderD + bannerMotdFile)
-    if os.path.exists(folderO + console):
+        shutil.copyfile(folder_origin + bannerMotdFile, folder_destiny + bannerMotdFile)
+    if os.path.exists(folder_origin + console):
         flag = True
-        shutil.copyfile(folderO + console, folderD + console)
+        shutil.copyfile(folder_origin + console, folder_destiny + console)
     for i in range(1, 25):
-        if os.path.exists(folderO + "fa0" + str(i) + ".txt"):
+        if os.path.exists(folder_origin + "fa0" + str(i) + ".txt"):
             flag = True
-            shutil.copyfile(folderO + "fa0" + str(i) + ".txt", folderD + "fa0" + str(i) + ".txt")
+            shutil.copyfile(folder_origin + "fa0" + str(i) + ".txt", folder_destiny + "fa0" + str(i) + ".txt")
     for i in range(1, 3):
-        if os.path.exists(folderO + "eth0" + str(i) + ".txt"):
+        if os.path.exists(folder_origin + "eth0" + str(i) + ".txt"):
             flag = True
-            shutil.copyfile(folderO + "eth0" + str(i) + ".txt", folderD + "eth0" + str(i) + ".txt")
-    if os.path.exists(folderO + "vlan1.txt"):
+            shutil.copyfile(folder_origin + "eth0" + str(i) + ".txt", folder_destiny + "eth0" + str(i) + ".txt")
+    if os.path.exists(folder_origin + "vlan1.txt"):
         flag = True
-        shutil.copyfile(folderO + "vlan1.txt", folderD + "vlan1.txt")
-    if os.path.exists(folderO + "vty 04.txt"):
+        shutil.copyfile(folder_origin + "vlan1.txt", folder_destiny + "vlan1.txt")
+    if os.path.exists(folder_origin + "vty 04.txt"):
         flag = True
-        shutil.copyfile(folderO + "vty 04.txt", folderD + "vty 04.txt")
-    if os.path.exists(folderO + "vty 515.txt"):
+        shutil.copyfile(folder_origin + "vty 04.txt", folder_destiny + "vty 04.txt")
+    if os.path.exists(folder_origin + "vty 515.txt"):
         flag = True
-        shutil.copyfile(folderO + "vty 515.txt", folderD + "vty 515.txt")
+        shutil.copyfile(folder_origin + "vty 515.txt", folder_destiny + "vty 515.txt")
     return flag
 
 
@@ -297,6 +329,25 @@ def delete_running(folder):
 def delete_extra(file):
     if os.path.exists(file):
         os.remove(file)
+
+
+def ip_interface_brief():
+    print("Interface               IP-Address          OK? Method Status        Protocol")
+    for i in range(1, 25):
+        show_interface("fa0" + str(i) + ".txt", i, "FastEthernet")
+    if os.path.exists("vlan1.txt"):
+        infoIp = open_file("vlan1.txt")
+        infoIp = infoIp.split(" ")
+        ip = infoIp[0]
+    else:
+        ip = "unassigned"
+    rep = 15 - len(ip)
+    blank = "      "
+    for j in range(1, rep):
+        blank = blank + " "
+    for i in range(1, 3):
+        show_interface("eth" + str(i) + ".txt", i, "GigabitEthernet")
+    print("Vlan1                   " + ip + blank + "YES manual               administratively down")
 
 
 def exec_privileged():
@@ -347,23 +398,6 @@ def exec_privileged():
                 print("Invalid input detected")
             else:
                 ping_traceroute(comm[1], "ping")
-        elif " ".join(comm) == "show ip interface brief":
-            print("Interface               IP-Address          OK? Method Status        Protocol")
-            for i in range(1, 25):
-                show_interface("fa0" + str(i) + ".txt", i, "FastEthernet")
-            if os.path.exists("vlan1.txt"):
-                infoIp = open_file("vlan1.txt")
-                infoIp = infoIp.split(" ")
-                ip = infoIp[0]
-            else:
-                ip = "unassigned"
-            rep = 15 - len(ip)
-            blank = "      "
-            for j in range(1, rep):
-                blank = blank + " "
-            for i in range(1, 3):
-                show_interface("eth" + str(i) + ".txt", i, "GigabitEthernet")
-            print("Vlan1                   "+ip+blank+"YES manual               administratively down")
         elif comm[0] == "traceroute":
             if 1 < len(comm) < 3:
                 ping_traceroute(comm[1], "traceroute")
@@ -372,8 +406,9 @@ def exec_privileged():
             else:
                 print("% Invalid input detected.")
         elif comm[0] == "show":
-            if comm[1] == "running-config":
-                print('''Building configuration...
+            try:
+                if comm[1] == "running-config":
+                    print('''Building configuration...
 
 Current configuration : 1045 bytes
 !
@@ -382,7 +417,7 @@ no service timestamps log datetime msec
 no service timestamps debug datetime msec
 no service password-encryption
 !
-hostname '''+host()+'''
+hostname ''' + host() + '''
 !
 !
 !
@@ -390,41 +425,48 @@ hostname '''+host()+'''
 !
 spanning-tree mode pvst
 !''')
-                for i in range(1, 31):
-                    running_interface("FastEthernet", "fa0", str(i))
-                for i in range(1, 3):
-                    running_interface("GigabitEthernet", "eth0", str(i))
-                print("interface Vlan1")
-                if os.path.exists("vlan1.txt"):
-                    ip = open_file("vlan1.txt")
-                    print(" ip address "+ip)
+                    for i in range(1, 31):
+                        running_interface("FastEthernet", "fa0", str(i))
+                    for i in range(1, 3):
+                        running_interface("GigabitEthernet", "eth0", str(i))
+                    print("interface Vlan1")
+                    if os.path.exists("vlan1.txt"):
+                        ip = open_file("vlan1.txt")
+                        print(" ip address " + ip)
+                    else:
+                        print(" no ip address")
+                    print(" shutdown")
+                    for i in range(0, 4):
+                        print("!")
+                    print("line con 0")
+                    running_line(console)
+                    print("line vty 0 4")
+                    running_line("vty04.txt")
+                    print("line vty 5 15")
+                    running_line("vty515.txt")
+                    for i in range(0, 3):
+                        print("!")
+                    print("end")
+                elif comm[1] == "startup-config":
+                    if not os.path.exists("/nvram"):
+                        print("startup-config is not present")
+                elif comm[1] == "ip":
+                    print_ip_interface(comm)
                 else:
-                    print(" no ip address")
-                print(" shutdown")
-                for i in range(0, 4):
-                    print("!")
-                print("line con 0")
-                running_line(console)
-                print("line vty 0 4")
-                running_line("vty04.txt")
-                print("line vty 5 15")
-                running_line("vty515.txt")
-                for i in range(0, 3):
-                    print("!")
-                print("end")
-            elif comm[1] == "startup-config":
-                if not os.path.exists("/nvram"):
-                    print("startup-config is not present")
-        elif " ".join(comm) == "copy running-config startup-config":
-            if not os.path.exists("startup"):
-                os.mkdir("startup")
-            if not configuration("", "startup/"):
-                os.removedirs("startup")
-        elif " ".join(comm) == "copy startup-config running-config":
-            if os.path.exists("startup"):
-                configuration("startup/", "")
+                    invalid_input(7)
+            except:
+                print("% Incomplete command")
+        elif comm[0] == "copy":
+            if comm[1] == "running-config":
+                if not os.path.exists("startup"):
+                    os.mkdir("startup")
+                if not configuration("", "startup/"):
+                    os.removedirs("startup")
             else:
-                pass
+                if os.path.exists("startup"):
+                    configuration("startup/", "")
+                else:
+                    pass
         elif comm[0] == "reload":
             confirm = input("Proceed with reload? [confirm] ")
             if confirm == "y" or confirm == "Y" or confirm == "":
@@ -602,6 +644,8 @@ def exec_normal():
                 print("% Incomplete command.")
             else:
                 print("% Invalid input detected.")
+        elif comm[0] == "show":
+            print_ip_interface(comm)
         elif " ".join(comm) == "":
             pass
         elif comm[0] == "exit" or comm[0] == "logout":
@@ -612,9 +656,9 @@ def exec_normal():
 
 flag = True
 while flag:
-    os.system(detect_system("cls","clear"))
+    os.system(detect_system("cls", "clear"))
     starting = getpass.getpass('')
-    os.system(detect_system("cls","clear"))
+    os.system(detect_system("cls", "clear"))
     if starting == "":
         configuration("startup/", "")
         exec_normal()
