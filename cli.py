@@ -5,12 +5,7 @@
 # Tecnologías de la Información
 ###
 
-import os
-import os.path as path
-import shutil
-import getpass
-import time
-import platform
+import os, shutil, getpass, time, platform
 
 hostnameFile = 'hostname.txt'
 execFile = 'exec.txt'
@@ -32,7 +27,7 @@ def open_file(file):
 
 
 def host():
-    if path.exists(hostnameFile):
+    if os.path.exists(hostnameFile):
         hostname = open_file(hostnameFile)
     else:
         hostname = "Switch"
@@ -67,7 +62,7 @@ def line(file):
         if comm[0] == "password":
             modify_file(file, comm[1] + " 0")
         elif comm[0] == "login":
-            if path.exists(file):
+            if os.path.exists(file):
                 passw = open_file(file)
                 modify_file(file, passw[0:len(passw)-2] + " 1")
             else:
@@ -197,23 +192,24 @@ def conf():
             print("Comando no reconocido.")
 
 
-def ping_traceroute(ip, type):
+def detect_system(actionWin, actionLinux):
     system = platform.system()
     if system == "Windows":
-        if type == "ping":
-            command = type + " -n 4 "
-        else:
-            command = "tracert "
+        command = actionWin
     elif system == "Linux":
-        if type == "ping":
-            command = type + " -c 4 "
-        else:
-            command = type + " "
-    os.system(command + ip)
+        command = actionLinux
+    return command
+
+
+def ping_traceroute(ip, type):
+    if type == "ping":
+        os.system(detect_system(type + " -n 4" + ip, type + " -c 4 " + ip))
+    else:
+        os.system(detect_system("tracert " + ip, type + " " + ip))
 
 
 def show_interface(file, num, type):
-    if path.exists(file):
+    if os.path.exists(file):
         infoIp = open_file(file)
         infoIp = infoIp.split(" ")
         ip = infoIp[0]
@@ -230,29 +226,16 @@ def show_interface(file, num, type):
     print(type+"0/" + str(num) + blank1 + ip + blank2 + "YES manual down          down")
 
 
-def traceroute(ip):
-    print('''Type escape sequence to abort.
-Tracing the route to ''' + ip + '''\n''')
-    for i in range(1, 31):
-        print(str(i), end="")
-        for j in range(0, 3):
-            if j < 3:
-                print(" * ", end="")
-            else:
-                print(" * ")
-            time.sleep(2)
-
-
 def running_interface(type, ref, num):
     print(type + "0/" + num)
-    if path.exists(ref + num + ".txt"):
+    if os.path.exists(ref + num + ".txt"):
         ip = open_file(ref + num + ".txt")
         print(" ip address " + ip)
     print("!")
 
 
 def running_line(file):
-    if path.exists(file):
+    if os.path.exists(file):
         info = open_file(file)
         info = info.split(" ")
         login = info[1]
@@ -263,56 +246,56 @@ def running_line(file):
 
 def configuration(folderO, folderD):
     flag = False
-    if path.exists(folderO + execFile):
+    if os.path.exists(folderO + execFile):
         flag = True
         shutil.copyfile(folderO + execFile, folderD + execFile)
-    if path.exists(folderO + bannerMotdFile):
+    if os.path.exists(folderO + bannerMotdFile):
         flag = True
         shutil.copyfile(folderO + bannerMotdFile, folderD + bannerMotdFile)
-    if path.exists(folderO + console):
+    if os.path.exists(folderO + console):
         flag = True
         shutil.copyfile(folderO + console, folderD + console)
     for i in range(1, 25):
-        if path.exists(folderO + "fa0" + str(i) + ".txt"):
+        if os.path.exists(folderO + "fa0" + str(i) + ".txt"):
             flag = True
             shutil.copyfile(folderO + "fa0" + str(i) + ".txt", folderD + "fa0" + str(i) + ".txt")
     for i in range(1, 3):
-        if path.exists(folderO + "eth0" + str(i) + ".txt"):
+        if os.path.exists(folderO + "eth0" + str(i) + ".txt"):
             flag = True
             shutil.copyfile(folderO + "eth0" + str(i) + ".txt", folderD + "eth0" + str(i) + ".txt")
-    if path.exists(folderO + "vlan1.txt"):
+    if os.path.exists(folderO + "vlan1.txt"):
         flag = True
         shutil.copyfile(folderO + "vlan1.txt", folderD + "vlan1.txt")
-    if path.exists(folderO + "vty 04.txt"):
+    if os.path.exists(folderO + "vty 04.txt"):
         flag = True
         shutil.copyfile(folderO + "vty 04.txt", folderD + "vty 04.txt")
-    if path.exists(folderO + "vty 515.txt"):
+    if os.path.exists(folderO + "vty 515.txt"):
         flag = True
         shutil.copyfile(folderO + "vty 515.txt", folderD + "vty 515.txt")
     return flag
 
 
 def delete_running(folder):
-    if path.exists(folder + execFile):
+    if os.path.exists(folder + execFile):
         os.remove(folder + execFile)
-    if path.exists(folder + console):
+    if os.path.exists(folder + console):
         os.remove(folder + console)
     for i in range(1, 25):
-        if path.exists(folder + "fa0" + str(i) + ".txt"):
+        if os.path.exists(folder + "fa0" + str(i) + ".txt"):
             os.remove(folder + "fa0" + str(i) + ".txt")
     for i in range(1, 3):
-        if path.exists(folder + "eth0" + str(i) + ".txt"):
+        if os.path.exists(folder + "eth0" + str(i) + ".txt"):
             os.remove(folder + "eth0" + str(i) + ".txt")
-    if path.exists(folder + "vlan1.txt"):
+    if os.path.exists(folder + "vlan1.txt"):
         os.remove(folder + "vlan1.txt")
-    if path.exists(folder + "vty 04.txt"):
+    if os.path.exists(folder + "vty 04.txt"):
         os.remove(folder + "vty 04.txt")
-    if path.exists(folder + "vty 515.txt"):
+    if os.path.exists(folder + "vty 515.txt"):
         os.remove(folder + "vty 515.txt")
 
 
 def delete_extra(file):
-    if path.exists(file):
+    if os.path.exists(file):
         os.remove(file)
 
 
@@ -363,12 +346,12 @@ def exec_privileged():
             elif len(comm) < 2:
                 print("Invalid input detected")
             else:
-                ping_traceroute(comm[1])
+                ping_traceroute(comm[1], "ping")
         elif " ".join(comm) == "show ip interface brief":
             print("Interface               IP-Address          OK? Method Status        Protocol")
             for i in range(1, 25):
                 show_interface("fa0" + str(i) + ".txt", i, "FastEthernet")
-            if path.exists("vlan1.txt"):
+            if os.path.exists("vlan1.txt"):
                 infoIp = open_file("vlan1.txt")
                 infoIp = infoIp.split(" ")
                 ip = infoIp[0]
@@ -383,7 +366,7 @@ def exec_privileged():
             print("Vlan1                   "+ip+blank+"YES manual               administratively down")
         elif comm[0] == "traceroute":
             if 1 < len(comm) < 3:
-                traceroute(comm[1])
+                ping_traceroute(comm[1], "traceroute")
             elif len(comm) < 2:
                 print("% Incomplete command.")
             else:
@@ -412,7 +395,7 @@ spanning-tree mode pvst
                 for i in range(1, 3):
                     running_interface("GigabitEthernet", "eth0", str(i))
                 print("interface Vlan1")
-                if path.exists("vlan1.txt"):
+                if os.path.exists("vlan1.txt"):
                     ip = open_file("vlan1.txt")
                     print(" ip address "+ip)
                 else:
@@ -430,15 +413,15 @@ spanning-tree mode pvst
                     print("!")
                 print("end")
             elif comm[1] == "startup-config":
-                if not path.exists("/nvram"):
+                if not os.path.exists("/nvram"):
                     print("startup-config is not present")
         elif " ".join(comm) == "copy running-config startup-config":
-            if not path.exists("startup"):
+            if not os.path.exists("startup"):
                 os.mkdir("startup")
             if not configuration("", "startup/"):
                 os.removedirs("startup")
         elif " ".join(comm) == "copy startup-config running-config":
-            if path.exists("startup"):
+            if os.path.exists("startup"):
                 configuration("startup/", "")
             else:
                 pass
@@ -472,7 +455,7 @@ Loading "flash:/c2960-lanbase-mz.122-25.FX.bin"...''')
                 delete_extra("startup/" + hostnameFile)
                 delete_running("")
                 delete_running("startup/")
-                if path.exists("startup"):
+                if os.path.exists("startup"):
                     os.removedirs("startup")
                 print("[OK]")
                 print('''              Restricted Rights Legend
@@ -544,11 +527,11 @@ Compiled Wed 12-Oct-05 22:05 by pt_team
 
 def exec_normal():
     flag = True
-    if path.exists(bannerMotdFile):
+    if os.path.exists(bannerMotdFile):
         banner = open_file(bannerMotdFile)
         print(banner + "\n")
 
-    if path.exists(console):
+    if os.path.exists(console):
         text = open_file(console)
         text = text.split(" ")
         password = text[0]
@@ -570,7 +553,7 @@ def exec_normal():
         comm = input(host() + "> ")
         comm = comm.split(" ")
         if comm[0] == "enable":
-            if path.exists(execFile):
+            if os.path.exists(execFile):
                 password = open_file(execFile)
                 count = 0
                 while count < 3:
@@ -629,14 +612,9 @@ def exec_normal():
 
 flag = True
 while flag:
-    clear = platform.system()
-    if clear == "Windows":
-        clear = "cls"
-    elif clear == "Linux":
-        clear = "clear"
-    os.system(clear)
+    os.system(detect_system("cls","clear"))
     starting = getpass.getpass('')
-    os.system(clear)
+    os.system(detect_system("cls","clear"))
     if starting == "":
         configuration("startup/", "")
         exec_normal()
