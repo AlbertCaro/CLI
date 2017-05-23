@@ -26,17 +26,18 @@ def open_file(file):
     return text
 
 
-def host():
+def host(mode=""):
     if os.path.exists(hostnameFile):
         hostname = open_file(hostnameFile)
     else:
         hostname = "Switch"
+    hostname = hostname + mode
     return hostname
 
 
-def invalid_input(size_blanks):
-    size = len(host()) + size_blanks
-    for i in range(0, size):
+def invalid_input(hostname, size_blanks = 0):
+    size = len(hostname) + size_blanks
+    for i in range(size):
         print(" ", end="")
     print("^")
     print("% Invalid input detected at '^' marker.\n")
@@ -45,17 +46,18 @@ def invalid_input(size_blanks):
 def interf(file):
     flag = True
     while flag:
-        comm = input(host() + "(config-if)# ")
+        comm = input(host("(config-if)# "))
         comm = comm.split(" ")
         if comm[0] == "ip":
             if 2 < len(comm) < 5 and comm[1] == "address":
                 modify_file(file, comm[2] + " " + comm[3])
-            elif 4 < len(comm) < 2:
+            elif 2 < len(comm) < 4:
                 print("% Incomplete command.")
             else:
-                print("Invalid input detected.")
+                invalid_input(host("(config-if)# "), len(comm[2])+len(comm[3])+13)
         elif comm[0] == "?":
-            print('''  cdp               Global CDP configuration subcommands
+            if len(comm) == 1:
+                print('''  cdp               Global CDP configuration subcommands
   channel-group     Etherchannel/port bundling configuration
   channel-protocol  Select the channel protocol (LACP, PAgP)
   description       Interface specific description
@@ -72,18 +74,20 @@ def interf(file):
   storm-control     storm configuration
   switchport        Set switching mode characteristics
   tx-ring-limit     Configure PA level transmit ring limit''')
-        elif " ".join(comm) == "":
+            else:
+                invalid_input(host("(config-if)# "), 2)
+        elif " ".join(comm) == "" or " ".join(comm).isspace():
             pass
         elif comm[0] == "exit":
             flag = False
         else:
-            print("Invalid input detected.")
+            invalid_input(host("(config-if)# "))
 
 
 def line(file):
     flag = True
     while flag:
-        comm = input(host() + "(config-line)# ")
+        comm = input(host("(config-line)# "))
         comm = comm.split(" ")
         if comm[0] == "password":
             modify_file(file, comm[1] + " 0")
@@ -94,7 +98,8 @@ def line(file):
             else:
                 print("% Login disabled on line 0, until 'password' is set")
         elif comm[0] == "?":
-            print('''Virtual Line configuration commands:
+            if len(comm) == 1:
+                print('''Virtual Line configuration commands:
   access-class  Filter connections based on an IP access list
   databits      Set number of data bits per character
   exec-timeout  Set the EXEC timeout
@@ -111,18 +116,20 @@ def line(file):
   speed         Set the transmit and receive speeds
   stopbits      Set async line stop bits
   transport     Define transport protocols for line''')
-        elif " ".join(comm) == "":
+            else:
+                invalid_input(host("(config-line)# "), 2)
+        elif " ".join(comm) == "" or " ".join(comm).isspace():
             pass
         elif comm[0] == "exit":
             flag = False
         else:
-            print("Invalid input detected.")
+            invalid_input(host("(config-line)# "))
 
 
 def conf():
     flag = True
     while flag:
-        comm = input(host() + "(config)# ")
+        comm = input(host("(config)# "))
         comm = comm.split(" ")
         if comm[0] == "line":
             do = False
@@ -133,39 +140,46 @@ def conf():
                 elif len(comm) < 3:
                     print("% Incomplete command")
                 else:
-                    print("Invalid input detected")
+                    invalid_input(host("(config)# "), 13)
             elif comm[1] == "vty":
-                if 2 < len(comm) < 5 and len(comm) != 3 and (
-                            (comm[2] == "0" and comm[3] == "4") or (comm[2] == "5" and comm[3] == "15")):
-                    file = comm[1] + " " + comm[2] + "" + comm[3] + ".txt"
-                    do = True
+                if 2 < len(comm) < 5 and len(comm) != 3:
+                    if comm[2] == "0" or comm[2] == "5":
+                        if comm[3] == "4" or comm[3] == "15":
+                            file = comm[1] + " " + comm[2] + "" + comm[3] + ".txt"
+                            do = True
+                        else:
+                            invalid_input(host("(config)# "), 11)
+                    else:
+                        invalid_input(host("(config)# "), 9)
                 elif len(comm) < 3:
                     print("% Incomplete command")
                 else:
-                    print("Invalid input detected")
+                    invalid_input(host("(config)# "), 13)
             else:
-                print("Invalid input detected")
-                print("% Incomplete command")
+                invalid_input(host("(config)# "), 5)
             if do:
                 line(file)
         elif comm[0] == "interface":
-            interface = comm[1]
-            pos = interface.find("/")
-            num = interface[pos + 1:]
-            if pos > 0:
-                if interface[:pos] == "eth0":
-                    limit = 3
+            try:
+                interface = comm[1]
+                pos = interface.find("/")
+                num = interface[pos + 1:]
+                if pos > 0:
+                    if interface[:pos] == "eth0":
+                        limit = 3
+                    else:
+                        limit = 25
+                    if 0 < int(num) < limit:
+                        interf(interface[:pos] + num + ".txt")
+                    else:
+                        print("%Invalid interface type and number")
+                elif comm[1] == "vlan1":
+                    if 0 < len(comm) < 3:
+                        interf("vlan1.txt")
                 else:
-                    limit = 25
-                if 0 < int(num) < limit:
-                    interf(interface[:pos] + num + ".txt")
-                else:
-                    print("%Invalid interface type and number")
-            elif comm[1] == "vlan1":
-                if 0 < len(comm) < 3:
-                    interf("vlan1.txt")
-            else:
-                print("Invalid input detected")
+                    invalid_input(host("(config)# "), 20)
+            except:
+                print("% Incomplete command")
         elif comm[0] == "enable":
             if 2 < len(comm) < 4:
                 if comm[1] == "password":
@@ -173,20 +187,22 @@ def conf():
                 elif comm[1] == "secret":
                     modify_file(execFile, comm[2])
             elif len(comm) > 3:
-                print("Invalid input detected")
+                invalid_input(host("(config)# "), 9)
             else:
                 print("% Incomplete command")
         elif comm[0] == "hostname":
             if 1 < len(comm) < 3:
                 modify_file(hostnameFile, comm[1])
             elif len(comm) > 2:
-                print("Invalid input detected")
+                invalid_input(host("(config)# "), 20+len(comm[1]))
             else:
                 print("% Incomplete command")
         elif comm[0] == "banner":
             if len(comm) > 1:
+                delimitador = comm[2]
+                delimitador = delimitador[0]
                 comm = " ".join(comm)
-                pos1 = comm.find("#") + 1
+                pos1 = comm.find(delimitador) + 1
                 pos2 = len(comm) - 1
                 banner = comm[pos1:pos2]
                 modify_file(bannerMotdFile, banner)
@@ -226,15 +242,15 @@ def conf():
   vlan               Vlan commands
   vtp                Configure global VTP state''')
             else:
-                input("Invalid input detected")
+                invalid_input(host("(config)# "), 2)
         elif comm[0] == "exit" or comm[0] == "end":
             print("%SYS-5-CONFIG_I: Configured from console by console")
             getpass.getpass('')
             flag = False
-        elif " ".join(comm) == "":
+        elif " ".join(comm) == "" or " ".join(comm).isspace():
             pass
         else:
-            print("Invalid input detected.")
+            invalid_input(host("(config)# "))
 
 
 def detect_system(action_win, action_linux):
@@ -246,11 +262,16 @@ def detect_system(action_win, action_linux):
     return command
 
 
-def ping_traceroute(ip, type):
-    if type == "ping":
-        os.system(detect_system(type + " -n 4" + ip, type + " -c 4 " + ip))
+def ping_traceroute(comm, hostname):
+    if 1 < len(comm) < 3:
+        if comm[0] == "ping":
+            os.system(detect_system(comm[0] + " -n 4 " + comm[1], comm[0] + " -c 4 " + comm[1]))
+        else:
+            os.system(detect_system("tracert " + comm[1], comm[0] + " " + comm[1]))
+    elif len(comm) < 2:
+        print("% Incomplete command.")
     else:
-        os.system(detect_system("tracert " + ip, type + " " + ip))
+        invalid_input(hostname, len(comm[1]) + len(comm[0]) + 2)
 
 
 def show_interface(file, num, type):
@@ -271,7 +292,7 @@ def show_interface(file, num, type):
     print(type + "0/" + str(num) + blank1 + ip + blank2 + "YES manual down          down")
 
 
-def print_ip_interface(comm):
+def print_ip_interface(comm, hostname):
     if 1 < len(comm) < 5:
         if comm[1] == "ip":
             try:
@@ -280,16 +301,16 @@ def print_ip_interface(comm):
                         if comm[3] == "brief":
                             ip_interface_brief()
                         else:
-                            invalid_input(20)
+                            invalid_input(hostname, 18)
                     else:
                         print('''Vlan1 is administratively down, line protocol is down
   Internet protocol processing disabled''')
                 else:
-                    invalid_input(10)
+                    invalid_input(hostname, 8)
             except:
                 print("% Incomplete command.")
         else:
-            invalid_input(7)
+            invalid_input(hostname, 5)
     else:
         print("% Incomplete command.")
 
@@ -389,7 +410,7 @@ def ip_interface_brief():
 def exec_privileged():
     flag = True
     while flag:
-        comm = input(host() + "# ")
+        comm = input(host("# "))
         comm = comm.split(" ")
         if " ".join(comm) == "conf term" or " ".join(comm) == "config terminal":
             print("Enter configuration commands, one per line.  End with CNTL/Z.")
@@ -426,21 +447,9 @@ def exec_privileged():
   vlan        Configure VLAN parameters
   write       Write running configuration to memory, network, or terminal''')
             else:
-                input("Invalid input detected")
-        elif comm[0] == "ping":
-            if len(comm) == 1:
-                print("% Incomplete command")
-            elif len(comm) < 2:
-                print("Invalid input detected")
-            else:
-                ping_traceroute(comm[1], "ping")
-        elif comm[0] == "traceroute":
-            if 1 < len(comm) < 3:
-                ping_traceroute(comm[1], "traceroute")
-            elif len(comm) < 2:
-                print("% Incomplete command.")
-            else:
-                print("% Invalid input detected.")
+                invalid_input(host("# "), 2)
+        elif comm[0] == "ping" or comm[0] == "traceroute":
+            ping_traceroute(comm, host("# "))
         elif comm[0] == "show":
             try:
                 if comm[1] == "running-config":
@@ -472,7 +481,7 @@ spanning-tree mode pvst
                     else:
                         print(" no ip address")
                     print(" shutdown")
-                    for i in range(0, 4):
+                    for i in range(4):
                         print("!")
                     print("line con 0")
                     running_line(console)
@@ -480,16 +489,54 @@ spanning-tree mode pvst
                     running_line("vty04.txt")
                     print("line vty 5 15")
                     running_line("vty515.txt")
-                    for i in range(0, 3):
+                    for i in range(3):
                         print("!")
                     print("end")
                 elif comm[1] == "startup-config":
-                    if not os.path.exists("/nvram"):
+                    if not os.path.exists("startup"):
                         print("startup-config is not present")
+                    else:
+                        print('''Using 1070 bytes
+!
+version 12.2
+no service timestamps log datetime msec
+no service timestamps debug datetime msec
+no service password-encryption
+!
+hostname '''+ host() +'''
+!
+!
+!
+!
+!
+spanning-tree mode pvst
+!''')
+                        for i in range(1, 31):
+                            running_interface("FastEthernet", "startup/fa0", str(i))
+                        for i in range(1, 3):
+                            running_interface("GigabitEthernet", "startup/eth0", str(i))
+                        print("interface Vlan1")
+                        if os.path.exists("startup/vlan1.txt"):
+                            ip = open_file("startup/vlan1.txt")
+                            print(" ip address " + ip)
+                        else:
+                            print(" no ip address")
+                        print(" shutdown")
+                        for i in range(4):
+                            print("!")
+                        print("line con 0")
+                        running_line("startup/" + console)
+                        print("line vty 0 4")
+                        running_line("startup/vty04.txt")
+                        print("line vty 5 15")
+                        running_line("startup/vty515.txt")
+                        for i in range(3):
+                            print("!")
+                        print("end")
                 elif comm[1] == "ip":
-                    print_ip_interface(comm)
+                    print_ip_interface(comm, host("# "))
                 else:
-                    invalid_input(7)
+                    invalid_input(host("# "), 7)
             except:
                 print("% Incomplete command")
         elif comm[0] == "copy":
@@ -505,9 +552,9 @@ spanning-tree mode pvst
                     else:
                         print("%% Non-volatile configuration memory invalid or not present")
                 else:
-                    invalid_input(22)
+                    invalid_input(host("# "), 22)
             elif comm[1] != "startup-config" and comm[1] != "running-config":
-                invalid_input(7)
+                invalid_input(host("# "), 7)
             else:
                 print("% Incomplete command")
         elif comm[0] == "reload":
@@ -532,7 +579,7 @@ Parameter Block Filesystem (pb:) installed, fsid: 4
 
 
 Loading "flash:/c2960-lanbase-mz.122-25.FX.bin"...''')
-                for i in range(0, 15):
+                for i in range(15):
                     print("#")
                     time.sleep(1)
                 delete_extra(bannerMotdFile)
@@ -600,16 +647,15 @@ Compiled Wed 12-Oct-05 22:05 by pt_team
 ''')
                 getpass.getpass("Press RETURN to get started!")
                 print("\n\n")
-                flag = False
                 return False
             else:
                 pass
         elif comm[0] == "exit" or comm == "disable":
             flag = False
-        elif " ".join(comm) == "":
+        elif " ".join(comm) == "" or " ".join(comm).isspace():
             pass
         else:
-            print("% Invalid input detected.")
+            invalid_input(host("# "), 0)
     return True;
 
 
@@ -638,7 +684,7 @@ def exec_normal():
             print()
 
     while flag:
-        comm = input(host() + "> ")
+        comm = input(host("> "))
         comm = comm.split(" ")
         if comm[0] == "enable":
             if os.path.exists(execFile):
@@ -675,29 +721,17 @@ def exec_normal():
       terminal    Set terminal line parameters
       traceroute  Trace route to destination''')
             else:
-                print("Invalid input detected")
-        elif comm[0] == "ping":
-            if len(comm) == 1:
-                print("% Incomplete command")
-            elif len(comm) < 2:
-                print("Invalid input detected")
-            else:
-                ping_traceroute(comm[1], "ping")
-        elif comm[0] == "traceroute":
-            if 1 < len(comm) < 3:
-                ping_traceroute(comm[1], "traceroute")
-            elif len(comm) < 2:
-                print("% Incomplete command.")
-            else:
-                print("% Invalid input detected.")
+                invalid_input(host("> "), 2)
+        elif comm[0] == "ping" or comm[0] == "traceroute":
+            ping_traceroute(comm, host("> "))
         elif comm[0] == "show":
-            print_ip_interface(comm)
-        elif " ".join(comm) == "":
+            print_ip_interface(comm, host("> "))
+        elif " ".join(comm) == "" or " ".join(comm).isspace():
             pass
         elif comm[0] == "exit" or comm[0] == "logout":
             flag = False
         else:
-            print("% Invalid input detected.")
+            invalid_input(host("> "), 0)
 
 
 flag = True
